@@ -11,6 +11,7 @@ DB_PATH = "db/ledger.db"
 
 
 def format_balance(amount):
+    """Formats the float into a readable string with +/- signs."""
     if amount > 0:
         return f"🟢 + {amount:.2f} € (Gets money)"
     elif amount < 0:
@@ -19,17 +20,42 @@ def format_balance(amount):
         return "⚪ 0.00 € (Settled)"
 
 
+# --- NEW: Dialog function for the confirmation popup ---
+@st.dialog("⚠️ Confirm Reset")
+def confirm_reset():
+    st.write("Are you absolutely sure? This will permanently delete the entire ledger history and cannot be undone.")
+
+    # Place buttons side by side
+    col1, col2 = st.columns(2)
+
+    if col1.button("Yes, delete everything", type="primary", use_container_width=True):
+        conn = sqlite3.connect(DB_PATH)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM ledger")
+        conn.commit()
+        conn.close()
+        # Rerunning closes the popup and refreshes the main page
+        st.rerun()
+
+    if col2.button("Cancel", use_container_width=True):
+        st.rerun()
+
+
 # Check if the DB exists
 if os.path.exists(DB_PATH):
-    # NEW: Read from SQLite using pandas
+    # Read from SQLite using pandas
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query("SELECT * FROM ledger", conn)
     conn.close()
 
     if not df.empty:
+        # Group by 'Person' and sum up the 'Amount'
         balances = df.groupby("Person")["Amount"].sum().reset_index()
+
+        # Sort so the people who are owed the most money are at the top
         balances = balances.sort_values(by="Amount", ascending=False)
 
+        # Format for UI Display
         display_balances = balances.copy()
         display_balances["Net Balance"] = display_balances["Amount"].apply(format_balance)
 
@@ -42,16 +68,10 @@ if os.path.exists(DB_PATH):
         st.divider()
         st.write("Are all debts settled? Clear the ledger to start fresh.")
 
-        # NEW: Delete all rows from the SQLite table instead of deleting a file
+        # Clicking this button now opens the dialog popup instead of deleting immediately
         if st.button("🗑️ Reset / Settle All Debts", type="primary"):
-            conn = sqlite3.connect(DB_PATH)
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM ledger")
-            conn.commit()
-            conn.close()
+            confirm_reset()
 
-            st.success("All debts have been settled! The ledger is now empty.")
-            st.rerun()
     else:
         st.info("The ledger is empty. Go split a receipt first!")
 else:

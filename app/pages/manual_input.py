@@ -35,7 +35,6 @@ if amount > 0:
 
             if success:
                 st.success(f"✅ Success! Recorded that {consumer} owes {amount:.2f} € to {payer}.")
-                st.balloons()
             else:
                 st.error("Something went wrong.")
 

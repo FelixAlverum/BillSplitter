@@ -114,7 +114,6 @@ if uploaded_file is not None:
 
                 # Visual feedback and resetting the preview state
                 st.success(f"✅ Success! {payer} was credited for this receipt. Balances updated!")
-                st.balloons()  # Kleines visuelles Feuerwerk zur Bestätigung
                 st.session_state.preview_ready = False  # Schließt die Vorschau nach dem Speichern
 
     else:
