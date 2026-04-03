@@ -4,46 +4,53 @@ import os
 
 st.set_page_config(page_title="Balance Overview", page_icon="💸", layout="wide")
 st.title("💸 Balance Overview")
-st.write("Here you can see the total accumulated debt for each person across all receipts.")
+st.write("Track who owes money and who is owed money across all receipts.")
 
 FILE_PATH = "ledger.csv"
 
-# Prüfen, ob schon Daten gespeichert wurden
+
+def format_balance(amount):
+    """Formats the float into a readable string with +/- signs."""
+    if amount > 0:
+        return f"🟢 + {amount:.2f} € (Gets money)"
+    elif amount < 0:
+        return f"🔴 - {abs(amount):.2f} € (Owes money)"
+    else:
+        return "⚪ 0.00 € (Settled)"
+
+
 if os.path.exists(FILE_PATH):
     df = pd.read_csv(FILE_PATH)
 
     if not df.empty:
-        # --- 1. Balances berechnen (Alle Positionen aufsummieren) ---
-        # Groupby 'Person' und summiere die 'Amount' Spalte
+        # Group by 'Person' and sum up the 'Amount'
         balances = df.groupby("Person")["Amount"].sum().reset_index()
 
-        # Sortieren nach dem höchsten Betrag
+        # Sort so the people who are owed the most money are at the top
         balances = balances.sort_values(by="Amount", ascending=False)
 
-        # Schöne Formatierung für die Anzeige
+        # Format for UI Display
         display_balances = balances.copy()
-        display_balances["Amount"] = display_balances["Amount"].apply(lambda x: f"{x:.2f} €")
-        display_balances = display_balances.rename(columns={"Amount": "Total Owed"})
+        display_balances["Net Balance"] = display_balances["Amount"].apply(format_balance)
 
-        # --- 2. UI Anzeige ---
         st.subheader("📊 Current Balances")
-        st.dataframe(display_balances, use_container_width=True, hide_index=True)
+        # Display just the Person and their formatted Net Balance
+        st.dataframe(display_balances[["Person", "Net Balance"]], use_container_width=True, hide_index=True)
 
-        # Ein kleines Balkendiagramm zur besseren Visualisierung
+        # Bar chart: Streamlit automatically renders negative values downwards!
         st.bar_chart(data=balances.set_index("Person"))
 
         st.divider()
 
-        # --- 3. Historie und Reset ---
-        with st.expander("📜 Show Receipt History (Ledger)"):
+        with st.expander("📜 Show Raw Ledger (History)"):
             st.dataframe(df, use_container_width=True, hide_index=True)
 
         st.divider()
-        st.write("Are all debts paid? You can clear the history here.")
+        st.write("Are all debts settled? Clear the ledger to start fresh.")
         if st.button("🗑️ Reset / Settle All Debts", type="primary"):
             os.remove(FILE_PATH)
             st.success("All debts have been settled! The ledger is now empty.")
-            st.rerun()  # Seite sofort neu laden, damit die UI aktualisiert wird
+            st.rerun()
 
     else:
         st.info("The ledger is empty. Go split a receipt first!")

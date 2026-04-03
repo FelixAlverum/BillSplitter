@@ -75,22 +75,25 @@ if uploaded_file is not None:
             })
         st.divider()
 
+        # --- Who paid the bill? ---
+        payer = st.selectbox("💳 Who paid the bill?", options=PEOPLE)
+
         # --- 3. BUSINESS LOGIC (Calculations) & DATA SAVING ---
-        if st.button("💰 Calculate Split", type="primary", use_container_width=True):
+        if st.button("💰 Calculate & Save Split", type="primary", use_container_width=True):
             st.subheader("📊 Summary")
 
             totals, unassigned = calculate_split(assignments, PEOPLE)
 
-            df_totals = pd.DataFrame(list(totals.items()), columns=["Person", "To Pay"])
-            df_totals["To Pay"] = df_totals["To Pay"].apply(lambda x: f"{x:.2f} €")
+            df_totals = pd.DataFrame(list(totals.items()), columns=["Person", "Consumed Share"])
+            df_totals["Consumed Share"] = df_totals["Consumed Share"].apply(lambda x: f"{x:.2f} €")
             st.dataframe(df_totals, use_container_width=True, hide_index=True)
 
             if unassigned:
                 st.warning(f"⚠️ Warning: {len(unassigned)} items were not assigned to anyone!")
 
-            # --- Saving Data ---
-            save_split_results(totals, assignments)
-            st.success("Results temporarily saved in system!")
+            # --- Saving Data (passing the payer) ---
+            save_split_results(totals, assignments, payer)
+            st.success(f"✅ Success! {payer} was credited for this receipt. Balances updated!")
 
     else:
         st.error("No items found. The Start/Stop criteria did not match.")
