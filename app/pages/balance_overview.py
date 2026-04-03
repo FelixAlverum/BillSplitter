@@ -70,8 +70,6 @@ if os.path.exists(DB_PATH):
 
         # 2. History Section with Individual Delete Buttons
         with st.expander("📜 Show Ledger (Transaction History)"):
-            st.divider()
-
             # Get unique timestamps to show groups
             unique_timestamps = df["Date"].unique()
 

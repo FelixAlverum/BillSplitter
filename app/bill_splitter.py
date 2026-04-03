@@ -41,8 +41,8 @@ if uploaded_file is not None:
 
     # --- 2. UI RENDERING ---
     if items:
-        # Who paid the bill?
-        payer = st.selectbox("💳 Who paid the bill?", options=PEOPLE)
+        st.subheader("💳 Who paid the bill?")
+        payer = st.selectbox("", options=PEOPLE)
         st.divider()
         st.subheader("📝 Split Found Items")
         assignments = []
@@ -50,9 +50,6 @@ if uploaded_file is not None:
         cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
         cols[0].markdown("**Item**")
         cols[1].markdown("**Price**")
-        for i, p in enumerate(PEOPLE):
-            cols[i + 2].markdown(f"**{p}**")
-        cols[-1].markdown("**Select All**")
         st.divider()
 
         for i, item in enumerate(items):
@@ -124,7 +121,7 @@ if uploaded_file is not None:
                 save_split_results(totals, assignments, payer)
                 st.success(f"✅ Success! {payer} was credited for this receipt. Balances updated!")
                 st.balloons()
-                time.sleep(1.25)
+                time.sleep(1.4)
                 reset_state()
                 st.session_state.preview_ready = False
                 st.session_state.uploader_key += 1
