@@ -34,13 +34,7 @@ if os.path.exists(FILE_PATH):
         display_balances["Net Balance"] = display_balances["Amount"].apply(format_balance)
 
         st.subheader("📊 Current Balances")
-        # Display just the Person and their formatted Net Balance
         st.dataframe(display_balances[["Person", "Net Balance"]], use_container_width=True, hide_index=True)
-
-        # Bar chart: Streamlit automatically renders negative values downwards!
-        st.bar_chart(data=balances.set_index("Person"))
-
-        st.divider()
 
         with st.expander("📜 Show Raw Ledger (History)"):
             st.dataframe(df, use_container_width=True, hide_index=True)
