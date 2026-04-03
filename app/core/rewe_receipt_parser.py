@@ -3,7 +3,7 @@ import re
 
 # Constants
 from core.config import START_KEYWORD, STOP_KEYWORDS
-ITEM_REGEX = re.compile(r'(.+?)\s+(\d+[,.]\d{2})[\sAB*]*$')
+ITEM_REGEX = re.compile(r'(.+?)\s+(-?\d+[,.]\d{2})[\sAB*]*$')
 
 def extract_text_from_pdf(uploaded_file) -> str:
     """Extracts raw text from the PDF file object."""
