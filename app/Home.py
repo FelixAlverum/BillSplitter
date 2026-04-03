@@ -12,7 +12,16 @@ st.set_page_config(page_title="Receipt Splitter", layout="wide")
 st.title("🛒 Bill Splitter ⚔️")
 st.write("Upload a PDF. Click on the people to split the costs for an item.")
 
-uploaded_file = st.file_uploader("Upload Receipt (PDF)", type="pdf", on_change=reset_state)
+if "preview_ready" not in st.session_state:
+    st.session_state.preview_ready = False
+
+
+def handle_file_upload():
+    reset_state()
+    st.session_state.preview_ready = False
+
+
+uploaded_file = st.file_uploader("Upload Receipt (PDF)", type="pdf", on_change=handle_file_upload)
 
 if uploaded_file is not None:
     # --- 1. BUSINESS LOGIC (Parsing) ---
@@ -77,9 +86,17 @@ if uploaded_file is not None:
                 "Selected": selected_persons
             })
 
-        # --- 3. BUSINESS LOGIC (Calculations) & DATA SAVING ---
-        if st.button("💰 Calculate & Save Split", type="primary", use_container_width=True):
-            st.subheader("📊 Summary")
+        st.divider()
+
+        # --- 3. BUSINESS LOGIC (Calculations & Preview) ---
+        # First Button: Only calculates and shows the preview
+        if st.button("🔍 Preview Split", use_container_width=True):
+            st.session_state.preview_ready = True
+
+        # If preview is active, show the summary and the final save button
+        if st.session_state.preview_ready:
+            st.subheader("📊 Summary Preview")
+            st.info("Please review the split below. If everything is correct, confirm to save it to the balance sheet.")
 
             totals, unassigned = calculate_split(assignments, PEOPLE)
 
@@ -90,9 +107,15 @@ if uploaded_file is not None:
             if unassigned:
                 st.warning(f"⚠️ Warning: {len(unassigned)} items were not assigned to anyone!")
 
-            # --- Saving Data (passing the payer) ---
-            save_split_results(totals, assignments, payer)
-            st.success(f"✅ Success! {payer} was credited for this receipt. Balances updated!")
+            # --- 4. DATA SAVING ---
+            # Second Button: Actually saves the data
+            if st.button("💾 Confirm & Save to Balance Sheet", type="primary", use_container_width=True):
+                save_split_results(totals, assignments, payer)
+
+                # Visual feedback and resetting the preview state
+                st.success(f"✅ Success! {payer} was credited for this receipt. Balances updated!")
+                st.balloons()  # Kleines visuelles Feuerwerk zur Bestätigung
+                st.session_state.preview_ready = False  # Schließt die Vorschau nach dem Speichern
 
     else:
         st.error("No items found. The Start/Stop criteria did not match.")
