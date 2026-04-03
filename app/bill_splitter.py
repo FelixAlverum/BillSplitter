@@ -8,7 +8,7 @@ from core.rewe_receipt_parser import extract_text_from_pdf, parse_receipt
 from core.splitting_math import calculate_split
 from data.state_manager import toggle_button, toggle_all, reset_state, save_split_results
 
-st.set_page_config(page_title="Receipt Splitter", layout="wide")
+st.set_page_config(page_title="Bill Splitter", layout="wide")
 st.title("🛒 Bill Splitter ⚔️")
 st.write("Upload a PDF. Click on the people to split the costs for an item.")
 
