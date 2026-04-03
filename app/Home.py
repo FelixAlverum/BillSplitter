@@ -21,6 +21,9 @@ if uploaded_file is not None:
 
     # --- 2. UI RENDERING ---
     if items:
+        # Who paid the bill?
+        payer = st.selectbox("💳 Who paid the bill?", options=PEOPLE)
+        st.divider()
         st.subheader("📝 Split Found Items")
         assignments = []
 
@@ -73,10 +76,6 @@ if uploaded_file is not None:
                 "Price": item["Price"],
                 "Selected": selected_persons
             })
-        st.divider()
-
-        # --- Who paid the bill? ---
-        payer = st.selectbox("💳 Who paid the bill?", options=PEOPLE)
 
         # --- 3. BUSINESS LOGIC (Calculations) & DATA SAVING ---
         if st.button("💰 Calculate & Save Split", type="primary", use_container_width=True):
