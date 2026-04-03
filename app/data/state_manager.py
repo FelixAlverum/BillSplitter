@@ -47,7 +47,7 @@ def reset_state():
 def save_split_results(totals: dict, assignments: list, payer: str):
     records = []
     #Get current time in Berlin/Germany timezone
-    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
+    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M:%S")
     total_assigned_cost = sum(totals.values())
 
     for person in totals.keys():
@@ -75,7 +75,7 @@ def save_manual_entry(payer: str, amount: float, consumers: list):
 
     records = []
     # Get current time in Berlin/Germany timezone
-    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
+    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M:%S")
     split_amount = amount / len(consumers)
     net_balances = {}
 

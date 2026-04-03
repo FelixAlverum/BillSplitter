@@ -73,9 +73,15 @@ if os.path.exists(DB_PATH):
             # Get unique timestamps to show groups
             unique_timestamps = df["Date"].unique()
 
+
+
             for ts in unique_timestamps:
                 # Filter rows for this specific timestamp
                 ts_rows = df[df["Date"] == ts]
+                try:
+                    ts_display = pd.to_datetime(ts, dayfirst=True).strftime("%d.%m.%Y %H:%M")
+                except Exception:
+                    ts_display = ts
 
                 # Create columns: Info (80%) and Delete Button (20%)
                 col_info, col_btn = st.columns([5, 1])
@@ -83,7 +89,7 @@ if os.path.exists(DB_PATH):
                 with col_info:
                     # Display the timestamp and the people involved in one line
                     people_list = ", ".join(ts_rows["Person"].tolist())
-                    st.markdown(f"**{ts}** — *{people_list}*")
+                    st.markdown(f"**{ts_display}** — *{people_list}*")
 
                 with col_btn:
                     # Unique key for every button based on timestamp
