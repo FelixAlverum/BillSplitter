@@ -15,6 +15,7 @@ st.write(
 
 
 # --- Session State Initialization for Buttons ---
+
 # This function toggles the state of a single button from True to False (and vice versa)
 def toggle_button(key):
     st.session_state[key] = not st.session_state[key]
@@ -31,7 +32,15 @@ def toggle_all(item_index, people_list):
         st.session_state[f"btn_state_{item_index}_{p}"] = new_state
 
 
-uploaded_file = st.file_uploader("Upload Receipt (PDF)", type="pdf")
+# NEW: This function clears the saved button states when a new file is uploaded
+def reset_state():
+    for key in list(st.session_state.keys()):
+        if key.startswith("btn_state_") or key.startswith("btn_all_"):
+            del st.session_state[key]
+
+
+# MODIFIED: Added on_change=reset_state to trigger the cleanup when the file changes
+uploaded_file = st.file_uploader("Upload Receipt (PDF)", type="pdf", on_change=reset_state)
 
 if uploaded_file is not None:
     text = ""
