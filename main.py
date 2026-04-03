@@ -100,7 +100,7 @@ if uploaded_file is not None:
                 # Initialize status (Pre-select if 'pfand' is in the item name)
                 if state_key not in st.session_state:
                     # We still check for "pfand" because the German receipt contains this word
-                    if "pfand" in item["Item"].lower():
+                    if "PFAND" in item["Item"]:
                         st.session_state[state_key] = True
                     else:
                         st.session_state[state_key] = False
