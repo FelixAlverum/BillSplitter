@@ -1,24 +1,26 @@
-# Use an official lightweight Python image
+# Verwende ein offizielles, leichtgewichtiges Python-Image
 FROM python:3.11-slim
 
-# Set the working directory inside the container
+# Setze das Arbeitsverzeichnis im Container
 WORKDIR /app
 
-# Copy the requirements file first (this leverages Docker cache to speed up future builds)
+# Kopiere zuerst nur die requirements.txt
+# (Das nutzt den Docker-Cache: Wenn sich nur dein Code ändert, müssen die
+# Bibliotheken nicht jedes Mal neu heruntergeladen und installiert werden)
 COPY requirements.txt .
 
-# Install the Python dependencies
+# Installiere die Python-Abhängigkeiten
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the rest of your application code into the container
-COPY app/main.py .
-COPY .streamlit/ .streamlit/
+# NEU: Kopiere nun den gesamten Rest deines Projekts in den Container.
+# Dadurch werden app.py, die Ordner core/, data/ und .streamlit/ mitgenommen.
+COPY . .
 
-# Expose the port Streamlit uses by default
+# Öffne den Standard-Port von Streamlit
 EXPOSE 8501
 
-# Add healthcheck to ensure the container is running correctly (optional but recommended)
+# Füge einen Healthcheck hinzu (überprüft, ob Streamlit läuft und erreichbar ist)
 HEALTHCHECK CMD curl --fail http://localhost:8501/_stcore/health || exit 1
 
-# Command to start the Streamlit app
-CMD ["streamlit", "run", "main.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# Startbefehl für die Streamlit-App
+CMD ["streamlit", "run", "Home.py", "--server.port=8501", "--server.address=0.0.0.0"]
