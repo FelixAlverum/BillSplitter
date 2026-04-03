@@ -8,7 +8,7 @@ PEOPLE = ["Felix", "Nico", "Sven", "Markus"]
 
 # "wide" layout gives us more space for the side-by-side buttons
 st.set_page_config(page_title="Receipt Splitter", layout="wide")
-st.title("🛒 Receipt Splitter")
+st.title("🛒 Bill Splitter ⚔️")
 st.write(
     "Upload a PDF. Click on the people to split the costs for an item. Multiple clicks per item are possible!"
 )
