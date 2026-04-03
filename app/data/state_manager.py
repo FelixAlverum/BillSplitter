@@ -3,11 +3,9 @@ import pandas as pd
 import os
 from datetime import datetime
 
-
 def toggle_button(key: str):
     """Toggles the boolean state of a session_state key."""
     st.session_state[key] = not st.session_state[key]
-
 
 def toggle_all(item_index: int, people_list: list):
     """Toggles all people for a specific item row."""
@@ -16,13 +14,11 @@ def toggle_all(item_index: int, people_list: list):
     for p in people_list:
         st.session_state[f"btn_state_{item_index}_{p}"] = new_state
 
-
 def reset_state():
     """Clears the saved button states when a new file is uploaded."""
     for key in list(st.session_state.keys()):
         if key.startswith("btn_state_") or key.startswith("btn_all_"):
             del st.session_state[key]
-
 
 def save_split_results(totals: dict, assignments: list, payer: str):
     """
@@ -61,3 +57,46 @@ def save_split_results(totals: dict, assignments: list, payer: str):
     if records:
         df = pd.DataFrame(records)
         df.to_csv(file_path, mode='a', header=not file_exists, index=False)
+
+def save_manual_entry(payer: str, amount: float, consumers: list):
+    """
+    Saves a manual transaction to the Ledger.
+    """
+    file_path = "ledger.csv"
+    file_exists = os.path.isfile(file_path)
+
+    if not consumers or amount <= 0:
+        return False
+
+    records = []
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+
+    # Berechne den Anteil pro Person
+    split_amount = amount / len(consumers)
+
+    # Ein kleines Dictionary, um die Bilanzen für diesen Eintrag zu sammeln
+    net_balances = {}
+
+    # Jeder, der mitgegessen/mitgenutzt hat, bekommt minus (Schulden)
+    for person in consumers:
+        net_balances[person] = net_balances.get(person, 0.0) - split_amount
+
+    # Der Zahler bekommt den vollen Betrag als plus (Guthaben)
+    net_balances[payer] = net_balances.get(payer, 0.0) + amount
+
+    # In Datensätze für die CSV umwandeln
+    for person, net in net_balances.items():
+        net = round(net, 2)
+        if net != 0:
+            records.append({
+                "Date": timestamp,
+                "Person": person,
+                "Amount": net
+            })
+
+    if records:
+        import pandas as pd
+        df = pd.DataFrame(records)
+        df.to_csv(file_path, mode='a', header=not file_exists, index=False)
+
+    return True
