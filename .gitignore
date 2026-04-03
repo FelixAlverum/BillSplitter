@@ -1,0 +1,32 @@
+# --- Python Virtual Environment ---
+# Prevents uploading thousands of installed library files
+.venv/
+venv/
+env/
+
+# --- Python Cache ---
+# Automatically generated compiled files that clutter the repo
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# --- Database ---
+# Prevents uploading your actual local database with real debts/names
+db/*.db
+db/*.sqlite3
+ledger.db
+ledger.csv
+
+# --- PyCharm / IDE Files ---
+# Personal IDE settings that shouldn't be shared with others
+.idea/
+.vscode/
+
+# --- Environment Variables / Secrets ---
+# Never commit API keys or passwords!
+.env
+
+# --- OS Generated Files ---
+.DS_Store
+Thumbs.db
