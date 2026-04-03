@@ -3,23 +3,35 @@ import pdfplumber
 import re
 import pandas as pd
 
-# 1. Die 4 einprogrammierten Personen
-PERSONEN = ["Felix", "Nico", "Sven", "Markus"]
+# 1. The 4 hardcoded people
+PEOPLE = ["Felix", "Nico", "Sven", "Markus"]
 
-# "wide" Layout gibt uns mehr Platz für die nebeneinanderliegenden Buttons
-st.set_page_config(page_title="Kassenzettel Splitter", layout="wide")
-st.title("🛒 Kassenzettel Splitter")
+# "wide" layout gives us more space for the side-by-side buttons
+st.set_page_config(page_title="Receipt Splitter", layout="wide")
+st.title("🛒 Receipt Splitter")
 st.write(
-    "Lade ein PDF hoch. Klicke auf die Personen, um die Kosten für einen Artikel aufzuteilen. Mehrere Klicks pro Artikel sind möglich!")
+    "Upload a PDF. Click on the people to split the costs for an item. Multiple clicks per item are possible!"
+)
 
 
-# --- Session State Initialisierung für die Buttons ---
-# Diese Funktion wechselt den Status eines Buttons von True auf False (und umgekehrt)
+# --- Session State Initialization for Buttons ---
+# This function toggles the state of a single button from True to False (and vice versa)
 def toggle_button(key):
     st.session_state[key] = not st.session_state[key]
 
 
-uploaded_file = st.file_uploader("Kassenzettel (PDF) hochladen", type="pdf")
+# This function toggles all people for a specific row
+def toggle_all(item_index, people_list):
+    # Check if all people are currently selected for this item
+    all_selected = all(st.session_state[f"btn_state_{item_index}_{p}"] for p in people_list)
+
+    # If all are selected, turn them all off. Otherwise, turn them all on.
+    new_state = not all_selected
+    for p in people_list:
+        st.session_state[f"btn_state_{item_index}_{p}"] = new_state
+
+
+uploaded_file = st.file_uploader("Upload Receipt (PDF)", type="pdf")
 
 if uploaded_file is not None:
     text = ""
@@ -30,7 +42,7 @@ if uploaded_file is not None:
     items = []
     start_reading = False
 
-    # 2. Text parsen
+    # 2. Parse Text
     for line in text.split('\n'):
         clean_line = line.replace('"', '').strip()
 
@@ -46,56 +58,57 @@ if uploaded_file is not None:
             match = re.search(r'(.+?)\s+(\d+[,.]\d{2})[\sAB*]*$', clean_line)
 
             if match:
-                artikel_name = match.group(1).strip()
-                artikel_name = re.sub(r'^[,;\s]+', '', artikel_name)
-                preis_str = match.group(2).replace(',', '.')
+                item_name = match.group(1).strip()
+                item_name = re.sub(r'^[,;\s]+', '', item_name)
+                price_str = match.group(2).replace(',', '.')
 
-                if 'Stk x' in artikel_name:
+                if 'Stk x' in item_name:
                     continue
 
-                if artikel_name:
-                    items.append({"Artikel": artikel_name, "Preis": float(preis_str)})
+                if item_name:
+                    items.append({"Item": item_name, "Price": float(price_str)})
 
-    # 3. Frontend mit Toggle-Buttons
+    # 3. Frontend with Toggle Buttons
     if items:
-        st.subheader("📝 Gefundene Positionen aufteilen")
+        st.subheader("📝 Split Found Items")
 
         assignments = []
 
-        # Spalten-Layout: 3 Teile für Artikel, 1 Teil für Preis, und gleichmäßig Platz für jede Person
-        cols = st.columns([3, 1] + [1] * len(PERSONEN))
-        cols[0].markdown("**Artikel**")
-        cols[1].markdown("**Preis**")
-        for i, p in enumerate(PERSONEN):
+        # Column Layout: 3 parts for Item, 1 part for Price, equal parts for each person, and 1 part for the "All" button
+        cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
+        cols[0].markdown("**Item**")
+        cols[1].markdown("**Price**")
+        for i, p in enumerate(PEOPLE):
             cols[i + 2].markdown(f"**{p}**")
+        cols[-1].markdown("**Select All**")
 
         st.divider()
 
-        # Für jedes Item eine Zeile generieren
+        # Generate a row for each item
         for i, item in enumerate(items):
-            cols = st.columns([3, 1] + [1] * len(PERSONEN))
-            cols[0].write(item["Artikel"])
-            cols[1].write(f"{item['Preis']:.2f} €")
+            cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
+            cols[0].write(item["Item"])
+            cols[1].write(f"{item['Price']:.2f} €")
 
             selected_persons = []
 
-            # Für jede Person einen Button in der aktuellen Zeile erzeugen
-            for j, person in enumerate(PERSONEN):
-                # Eindeutiger Schlüssel für jeden Button (Item-Index + Person)
+            # Create a button in the current row for each person
+            for j, person in enumerate(PEOPLE):
+                # Unique key for each button (Item-Index + Person)
                 state_key = f"btn_state_{i}_{person}"
 
-                # Status initialisieren
+                # Initialize status (Pre-select if 'pfand' is in the item name)
                 if state_key not in st.session_state:
-                    # Prüfen, ob "pfand" im Namen steckt (mit .lower() ignorieren wir Groß-/Kleinschreibung)
-                    if "pfand" in item["Artikel"].lower():
-                        st.session_state[state_key] = True  # Bei Pfand alle vorab auswählen
+                    # We still check for "pfand" because the German receipt contains this word
+                    if "pfand" in item["Item"].lower():
+                        st.session_state[state_key] = True
                     else:
-                        st.session_state[state_key] = False  # Sonst standardmäßig abgewählt
+                        st.session_state[state_key] = False
 
-                # Visuelles Feedback: "primary" (farbig) wenn aktiv, "secondary" (grau) wenn inaktiv
+                # Visual feedback: "primary" (colored) if active, "secondary" (gray) if inactive
                 btn_type = "primary" if st.session_state[state_key] else "secondary"
 
-                # Button rendern
+                # Render button
                 cols[j + 2].button(
                     person,
                     key=f"btn_ui_{i}_{person}",
@@ -105,48 +118,59 @@ if uploaded_file is not None:
                     use_container_width=True
                 )
 
-                # Wenn der Status True ist, Person als Käufer für dieses Item festhalten
+                # If status is True, record person as a buyer for this item
                 if st.session_state[state_key]:
                     selected_persons.append(person)
 
+            # Render the "Select All" button at the end of the row
+            cols[-1].button(
+                "All",
+                key=f"btn_all_{i}",
+                on_click=toggle_all,
+                args=(i, PEOPLE),
+                type="secondary",
+                use_container_width=True
+            )
+
             assignments.append({
-                "Artikel": item["Artikel"],
-                "Preis": item["Preis"],
+                "Item": item["Item"],
+                "Price": item["Price"],
                 "Selected": selected_persons
             })
 
         st.divider()
 
-        # 4. Auswertung und Gesamtsummen berechnen
-        if st.button("💰 Abrechnung berechnen", type="primary", use_container_width=True):
-            st.subheader("📊 Zusammenfassung")
+        # 4. Evaluation and calculation of total sums
+        if st.button("💰 Calculate Split", type="primary", use_container_width=True):
+            st.subheader("📊 Summary")
 
-            # Ein Dictionary, um die Schulden jeder Person zu sammeln
-            totals = {p: 0.0 for p in PERSONEN}
+            # A dictionary to collect the debts of each person
+            totals = {p: 0.0 for p in PEOPLE}
             unassigned = []
 
-            # Berechnung durchführen
+            # Perform calculation
             for a in assignments:
-                anzahl_personen = len(a["Selected"])
-                if anzahl_personen > 0:
-                    # Preis durch Anzahl der Personen teilen
-                    anteil = a["Preis"] / anzahl_personen
+                person_count = len(a["Selected"])
+                if person_count > 0:
+                    # Divide price by the number of people
+                    share = a["Price"] / person_count
                     for p in a["Selected"]:
-                        totals[p] += anteil
+                        totals[p] += share
                 else:
                     unassigned.append(a)
 
-            # Summen als Tabelle anzeigen
-            df_totals = pd.DataFrame(list(totals.items()), columns=["Person", "Zu zahlen"])
-            df_totals["Zu zahlen"] = df_totals["Zu zahlen"].apply(lambda x: f"{x:.2f} €")
+            # Show totals as a table
+            df_totals = pd.DataFrame(list(totals.items()), columns=["Person", "To Pay"])
+            df_totals["To Pay"] = df_totals["To Pay"].apply(lambda x: f"{x:.2f} €")
             st.dataframe(df_totals, use_container_width=True, hide_index=True)
 
-            # Warnung ausgeben, falls man vergessen hat, einen Artikel zuzuweisen
+            # Issue a warning if an item was left unassigned
             if unassigned:
                 st.warning(
-                    f"⚠️ Achtung: {len(unassigned)} Artikel wurden niemandem zugewiesen und nicht in der Summe berechnet!")
-                with st.expander("Nicht zugewiesene Artikel ansehen"):
-                    st.dataframe(pd.DataFrame(unassigned)[["Artikel", "Preis"]], hide_index=True)
+                    f"⚠️ Warning: {len(unassigned)} items were not assigned to anyone and are not included in the total!"
+                )
+                with st.expander("View unassigned items"):
+                    st.dataframe(pd.DataFrame(unassigned)[["Item", "Price"]], hide_index=True)
 
     else:
-        st.error("Keine Positionen gefunden. Das Start/Stopp-Kriterium hat nicht gegriffen.")
+        st.error("No items found. The Start/Stop criteria did not match.")
