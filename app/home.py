@@ -4,8 +4,8 @@ import pandas as pd
 
 # Import our isolated modules
 from core.config import PEOPLE
-from core.reweReceiptParser import extract_text_from_pdf, parse_receipt
-from core.splittingMath import calculate_split
+from core.rewe_receipt_parser import extract_text_from_pdf, parse_receipt
+from core.splitting_math import calculate_split
 from data.state_manager import toggle_button, toggle_all, reset_state, save_split_results
 
 st.set_page_config(page_title="Receipt Splitter", layout="wide")
