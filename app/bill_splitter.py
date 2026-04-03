@@ -1,6 +1,6 @@
 import streamlit as st
 import pandas as pd
-
+import time  # NEW: imported for the delay
 
 # Import our isolated modules
 from core.config import PEOPLE
@@ -12,8 +12,13 @@ st.set_page_config(page_title="Bill Splitter", layout="wide")
 st.title("🛒 Bill Splitter ⚔️")
 st.write("Upload a PDF. Click on the people to split the costs for an item.")
 
+# --- INITIALIZE SESSION STATES ---
 if "preview_ready" not in st.session_state:
     st.session_state.preview_ready = False
+
+# NEW: We use this counter as a dynamic key for the file uploader
+if "uploader_key" not in st.session_state:
+    st.session_state.uploader_key = 0
 
 
 def handle_file_upload():
@@ -21,7 +26,13 @@ def handle_file_upload():
     st.session_state.preview_ready = False
 
 
-uploaded_file = st.file_uploader("Upload Receipt (PDF)", type="pdf", on_change=handle_file_upload)
+# MODIFIED: Added the dynamic key to the file uploader
+uploaded_file = st.file_uploader(
+    "Upload Receipt (PDF)",
+    type="pdf",
+    on_change=handle_file_upload,
+    key=str(st.session_state.uploader_key)
+)
 
 if uploaded_file is not None:
     # --- 1. BUSINESS LOGIC (Parsing) ---
@@ -111,10 +122,13 @@ if uploaded_file is not None:
             # Second Button: Actually saves the data
             if st.button("💾 Confirm & Save to Balance Sheet", type="primary", use_container_width=True):
                 save_split_results(totals, assignments, payer)
-
-                # Visual feedback and resetting the preview state
                 st.success(f"✅ Success! {payer} was credited for this receipt. Balances updated!")
-                st.session_state.preview_ready = False  # Schließt die Vorschau nach dem Speichern
+                st.balloons()
+                time.sleep(1.25)
+                reset_state()
+                st.session_state.preview_ready = False
+                st.session_state.uploader_key += 1
+                st.rerun()
 
     else:
         st.error("No items found. The Start/Stop criteria did not match.")
