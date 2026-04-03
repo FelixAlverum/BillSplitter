@@ -43,7 +43,7 @@ def save_split_results(totals: dict, assignments: list, payer: str):
         if person == payer:
             net_balance += total_assigned_cost
 
-            # Round to avoid weird floating-point decimals (e.g., 0.000000001)
+        # Round to avoid weird floating-point decimals (e.g., 0.000000001)
         net_balance = round(net_balance, 2)
 
         # Only record if the balance isn't exactly 0

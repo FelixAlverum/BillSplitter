@@ -1,9 +1,7 @@
 import streamlit as st
-import pandas as pd
 
+from core import config
 from data.state_manager import save_manual_entry
-
-PEOPLE = ["Felix", "Nico", "Sven", "Markus"]
 
 st.set_page_config(page_title="Manual Entry", page_icon="✍️", layout="centered")
 st.title("✍️ Manual Entry")
@@ -13,10 +11,10 @@ st.write("Did someone pay for exactly one other person? Enter it here.")
 with st.container(border=True):
     amount = st.number_input("💰 Total Amount (€)", min_value=0.0, value=0.0, format="%.2f")
 
-    payer = st.selectbox("💳 Who paid the bill?", options=PEOPLE)
+    payer = st.selectbox("💳 Who paid the bill?", options=config.PEOPLE)
 
     # st.selectbox forces exactly ONE choice
-    consumer = st.selectbox("🤷‍♂️ Who owes the money?", options=PEOPLE)
+    consumer = st.selectbox("🤷‍♂️ Who owes the money?", options=config.PEOPLE)
 
 st.divider()
 

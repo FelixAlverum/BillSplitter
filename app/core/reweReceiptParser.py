@@ -2,8 +2,7 @@ import pdfplumber
 import re
 
 # Constants
-START_KEYWORD = "EUR"
-STOP_KEYWORDS = ["-------------------------------------", "SUMME"]
+from config import START_KEYWORD, STOP_KEYWORDS
 ITEM_REGEX = re.compile(r'(.+?)\s+(\d+[,.]\d{2})[\sAB*]*$')
 
 def extract_text_from_pdf(uploaded_file) -> str:
