@@ -1,34 +1,35 @@
-name: Docker Image CI/CD
+name: Docker Image Build und Push
 
 on:
   push:
-    branches: [ "main" ] # Führt den Build bei jedem Push auf den main-branch aus
+    branches: [ "main" ] # Der Build startet, sobald du Code in den 'main' Branch pushst
+  workflow_dispatch: # Ermöglicht den manuellen Start per Knopfdruck
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
+      packages: write # Ermöglicht das Schreiben in die GitHub Container Registry
 
     steps:
-      - name: Checkout repository
+      - name: Code auschecken
         uses: actions/checkout@v4
 
-      - name: Log in to GitHub Container Registry
+      - name: Bei GitHub Container Registry anmelden
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) für Docker
+      - name: Docker Metadaten extrahieren
         id: meta
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/${{ github.repository }}
 
-      - name: Build and push Docker image
+      - name: Docker Image bauen und pushen
         uses: docker/build-push-action@v5
         with:
           context: .
