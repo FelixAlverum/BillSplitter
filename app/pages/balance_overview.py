@@ -70,7 +70,6 @@ if os.path.exists(DB_PATH):
 
         # 2. History Section with Individual Delete Buttons
         with st.expander("📜 Show Raw Ledger (History)"):
-            st.write("Transactions are grouped by timestamp. Deleting one removes the entire entry.")
             st.divider()
 
             # Get unique timestamps to show groups
@@ -93,9 +92,18 @@ if os.path.exists(DB_PATH):
                     if st.button("🗑️", key=f"del_{ts}", use_container_width=True):
                         confirm_delete_timestamp(ts)
 
-                # Show the individual amounts for this timestamp in a tiny table
-                st.dataframe(ts_rows[["Person", "Amount"]], use_container_width=True, hide_index=True)
-                st.divider()
+                # Create a copy for display to avoid pandas warnings
+                display_ts_rows = ts_rows[["Person", "Amount"]].copy()
+
+                # Apply your custom formatting function to the Amount column
+                display_ts_rows["Amount"] = display_ts_rows["Amount"].apply(format_balance)
+
+                # Show the formatted data in the table
+                st.dataframe(
+                    display_ts_rows,
+                    use_container_width=True,
+                    hide_index=True
+                )
 
         st.divider()
         st.write("Are all debts settled? Clear the ledger to start fresh.")
