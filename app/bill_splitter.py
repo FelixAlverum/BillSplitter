@@ -11,6 +11,7 @@ from data.state_manager import toggle_button, toggle_all, reset_state, save_spli
 st.set_page_config(page_title="Bill Splitter", layout="wide")
 st.title("🛒 Bill Splitter ⚔️")
 st.write("Upload a PDF. Click on the people to split the costs for an item.")
+st.write("IMPORTANT - Negative positions on the bill are not parsed and have to be added by the manual input.")
 
 # --- INITIALIZE SESSION STATES ---
 if "preview_ready" not in st.session_state:
