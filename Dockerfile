@@ -14,7 +14,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 # NEU: Kopiere nun den gesamten Rest deines Projekts in den Container.
 # Dadurch werden app.py, die Ordner core/, data/ und .streamlit/ mitgenommen.
-COPY . .
+COPY /app .
 
 # Öffne den Standard-Port von Streamlit
 EXPOSE 8501
