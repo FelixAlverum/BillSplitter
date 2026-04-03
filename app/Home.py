@@ -1,8 +1,9 @@
 import streamlit as st
 import pandas as pd
 
-from core import config
+
 # Import our isolated modules
+from core.config import PEOPLE
 from core.reweReceiptParser import extract_text_from_pdf, parse_receipt
 from core.splittingMath import calculate_split
 from data.state_manager import toggle_button, toggle_all, reset_state, save_split_results
@@ -30,27 +31,27 @@ if uploaded_file is not None:
     # --- 2. UI RENDERING ---
     if items:
         # Who paid the bill?
-        payer = st.selectbox("💳 Who paid the bill?", options=config.PEOPLE)
+        payer = st.selectbox("💳 Who paid the bill?", options=PEOPLE)
         st.divider()
         st.subheader("📝 Split Found Items")
         assignments = []
 
-        cols = st.columns([3, 1] + [1] * len(config.PEOPLE) + [1])
+        cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
         cols[0].markdown("**Item**")
         cols[1].markdown("**Price**")
-        for i, p in enumerate(config.PEOPLE):
+        for i, p in enumerate(PEOPLE):
             cols[i + 2].markdown(f"**{p}**")
         cols[-1].markdown("**Select All**")
         st.divider()
 
         for i, item in enumerate(items):
-            cols = st.columns([3, 1] + [1] * len(config.PEOPLE) + [1])
+            cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
             cols[0].write(item["Item"])
             cols[1].write(f"{item['Price']:.2f} €")
 
             selected_persons = []
 
-            for j, person in enumerate(config.PEOPLE):
+            for j, person in enumerate(PEOPLE):
                 state_key = f"btn_state_{i}_{person}"
 
                 if state_key not in st.session_state:
@@ -74,7 +75,7 @@ if uploaded_file is not None:
                 "All",
                 key=f"btn_all_{i}",
                 on_click=toggle_all,
-                args=(i, config.PEOPLE),
+                args=(i, PEOPLE),
                 type="secondary",
                 use_container_width=True
             )
@@ -97,7 +98,7 @@ if uploaded_file is not None:
             st.subheader("📊 Summary Preview")
             st.info("Please review the split below. If everything is correct, confirm to save it to the balance sheet.")
 
-            totals, unassigned = calculate_split(assignments, config.PEOPLE)
+            totals, unassigned = calculate_split(assignments, PEOPLE)
 
             df_totals = pd.DataFrame(list(totals.items()), columns=["Person", "Consumed Share"])
             df_totals["Consumed Share"] = df_totals["Consumed Share"].apply(lambda x: f"{x:.2f} €")
