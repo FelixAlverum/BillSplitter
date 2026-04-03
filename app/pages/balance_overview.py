@@ -69,7 +69,7 @@ if os.path.exists(DB_PATH):
         st.dataframe(display_balances[["Person", "Net Balance"]], use_container_width=True, hide_index=True)
 
         # 2. History Section with Individual Delete Buttons
-        with st.expander("📜 Show Raw Ledger (History)"):
+        with st.expander("📜 Show Ledger (Transaction History)"):
             st.divider()
 
             # Get unique timestamps to show groups

@@ -3,6 +3,7 @@ import pandas as pd
 import sqlite3
 import os
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 # --- DATABASE SETUP ---
 DB_FOLDER = "db"
@@ -45,7 +46,8 @@ def reset_state():
 # --- SAVING LOGIC ---
 def save_split_results(totals: dict, assignments: list, payer: str):
     records = []
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    #Get current time in Berlin/Germany timezone
+    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
     total_assigned_cost = sum(totals.values())
 
     for person in totals.keys():
@@ -63,7 +65,6 @@ def save_split_results(totals: dict, assignments: list, payer: str):
 
     if records:
         df = pd.DataFrame(records)
-        # NEW: Write to SQLite instead of CSV
         conn = sqlite3.connect(DB_PATH)
         df.to_sql('ledger', conn, if_exists='append', index=False)
         conn.close()
@@ -73,7 +74,8 @@ def save_manual_entry(payer: str, amount: float, consumers: list):
         return False
 
     records = []
-    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
+    # Get current time in Berlin/Germany timezone
+    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M")
     split_amount = amount / len(consumers)
     net_balances = {}
 
@@ -92,9 +94,8 @@ def save_manual_entry(payer: str, amount: float, consumers: list):
             })
 
     if records:
-        df = pd.DataFrame(records)
-        # NEW: Write to SQLite instead of CSV
         conn = sqlite3.connect(DB_PATH)
+        df = pd.DataFrame(records)
         df.to_sql('ledger', conn, if_exists='append', index=False)
         conn.close()
 
