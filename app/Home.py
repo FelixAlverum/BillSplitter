@@ -1,0 +1,96 @@
+import streamlit as st
+import pandas as pd
+
+# Import our isolated modules
+from core.reweReceiptParser import extract_text_from_pdf, parse_receipt
+from core.splittingMath import calculate_split
+from data.state_manager import toggle_button, toggle_all, reset_state, save_split_results
+
+PEOPLE = ["Felix", "Nico", "Sven", "Markus"]
+
+st.set_page_config(page_title="Receipt Splitter", layout="wide")
+st.title("🛒 Bill Splitter ⚔️")
+st.write("Upload a PDF. Click on the people to split the costs for an item.")
+
+uploaded_file = st.file_uploader("Upload Receipt (PDF)", type="pdf", on_change=reset_state)
+
+if uploaded_file is not None:
+    # --- 1. BUSINESS LOGIC (Parsing) ---
+    raw_text = extract_text_from_pdf(uploaded_file)
+    items = parse_receipt(raw_text)
+
+    # --- 2. UI RENDERING ---
+    if items:
+        st.subheader("📝 Split Found Items")
+        assignments = []
+
+        cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
+        cols[0].markdown("**Item**")
+        cols[1].markdown("**Price**")
+        for i, p in enumerate(PEOPLE):
+            cols[i + 2].markdown(f"**{p}**")
+        cols[-1].markdown("**Select All**")
+        st.divider()
+
+        for i, item in enumerate(items):
+            cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
+            cols[0].write(item["Item"])
+            cols[1].write(f"{item['Price']:.2f} €")
+
+            selected_persons = []
+
+            for j, person in enumerate(PEOPLE):
+                state_key = f"btn_state_{i}_{person}"
+
+                if state_key not in st.session_state:
+                    st.session_state[state_key] = "PFAND" in item["Item"]
+
+                btn_type = "primary" if st.session_state[state_key] else "secondary"
+
+                cols[j + 2].button(
+                    person,
+                    key=f"btn_ui_{i}_{person}",
+                    on_click=toggle_button,
+                    args=(state_key,),
+                    type=btn_type,
+                    use_container_width=True
+                )
+
+                if st.session_state[state_key]:
+                    selected_persons.append(person)
+
+            cols[-1].button(
+                "All",
+                key=f"btn_all_{i}",
+                on_click=toggle_all,
+                args=(i, PEOPLE),
+                type="secondary",
+                use_container_width=True
+            )
+
+            assignments.append({
+                "Item": item["Item"],
+                "Price": item["Price"],
+                "Selected": selected_persons
+            })
+        st.divider()
+
+        # --- 3. BUSINESS LOGIC (Calculations) & DATA SAVING ---
+        if st.button("💰 Calculate Split", type="primary", use_container_width=True):
+            st.subheader("📊 Summary")
+
+            totals, unassigned = calculate_split(assignments, PEOPLE)
+
+            df_totals = pd.DataFrame(list(totals.items()), columns=["Person", "To Pay"])
+            df_totals["To Pay"] = df_totals["To Pay"].apply(lambda x: f"{x:.2f} €")
+            st.dataframe(df_totals, use_container_width=True, hide_index=True)
+
+            if unassigned:
+                st.warning(f"⚠️ Warning: {len(unassigned)} items were not assigned to anyone!")
+
+            # --- Saving Data ---
+            save_split_results(totals, assignments)
+            st.success("Results temporarily saved in system!")
+
+    else:
+        st.error("No items found. The Start/Stop criteria did not match.")
