@@ -39,8 +39,10 @@ def toggle_all(item_index: int, people_list: list):
         st.session_state[f"btn_state_{item_index}_{p}"] = new_state
 
 def reset_state():
+    """Clears the saved button states and custom splits when a new file is uploaded."""
     for key in list(st.session_state.keys()):
-        if key.startswith("btn_state_") or key.startswith("btn_all_"):
+        # Added checking for "custom_split_"
+        if key.startswith("btn_state_") or key.startswith("btn_all_") or key.startswith("custom_split_"):
             del st.session_state[key]
 
 # --- SAVING LOGIC ---

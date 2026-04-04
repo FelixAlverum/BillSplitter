@@ -16,7 +16,6 @@ st.write("Upload a PDF. Click on the people to split the costs for an item.")
 if "preview_ready" not in st.session_state:
     st.session_state.preview_ready = False
 
-# NEW: We use this counter as a dynamic key for the file uploader
 if "uploader_key" not in st.session_state:
     st.session_state.uploader_key = 0
 
@@ -26,7 +25,59 @@ def handle_file_upload():
     st.session_state.preview_ready = False
 
 
-# MODIFIED: Added the dynamic key to the file uploader
+# --- NEW: POPUP DIALOG FOR CUSTOM SPLITS ---
+@st.dialog("✏️ Edit Custom Split")
+def edit_item_split_dialog(item_index, item_name, item_price, people):
+    st.write(f"**{item_name}**")
+    st.write(f"Total to split: **{item_price:.2f} €**")
+
+    state_key = f"custom_split_{item_index}"
+    current_splits = st.session_state.get(state_key, {})
+
+    # Pre-fill amounts based on currently toggled buttons if no custom split exists yet
+    if not current_splits:
+        selected = [p for p in people if st.session_state.get(f"btn_state_{item_index}_{p}", False)]
+        if selected:
+            share = item_price / len(selected)
+            current_splits = {p: share if p in selected else 0.0 for p in people}
+        else:
+            current_splits = {p: 0.0 for p in people}
+
+    new_splits = {}
+    total_entered = 0.0
+
+    # Generate a number input for each person
+    for p in people:
+        new_splits[p] = st.number_input(
+            f"{p}'s share (€)",
+            min_value=0.0,
+            value=float(current_splits.get(p, 0.0)),
+            step=0.50,
+            format="%.2f"
+        )
+        total_entered += new_splits[p]
+
+    st.divider()
+    diff = item_price - total_entered
+
+    # Show warning if the math doesn't add up to the receipt price
+    if abs(diff) > 0.01:
+        st.warning(f"⚠️ Total entered: {total_entered:.2f} € (Difference: {diff:+.2f} €)")
+    else:
+        st.success(f"✅ Exact match ({total_entered:.2f} €)")
+
+    col1, col2 = st.columns(2)
+    if col1.button("💾 Save Custom Split", type="primary", use_container_width=True):
+        st.session_state[state_key] = new_splits
+        st.rerun()
+
+    if col2.button("🗑️ Reset to Default", use_container_width=True):
+        if state_key in st.session_state:
+            del st.session_state[state_key]
+        st.rerun()
+
+
+# --- FILE UPLOADER ---
 uploaded_file = st.file_uploader(
     "Upload Receipt (PDF)",
     type="pdf",
@@ -35,11 +86,9 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
-    # --- 1. BUSINESS LOGIC (Parsing) ---
     raw_text = extract_text_from_pdf(uploaded_file)
     items = parse_receipt(raw_text)
 
-    # --- 2. UI RENDERING ---
     if items:
         st.subheader("💳 Who paid the bill?")
         payer = st.selectbox("", options=PEOPLE)
@@ -47,17 +96,25 @@ if uploaded_file is not None:
         st.subheader("📝 Split Found Items")
         assignments = []
 
-        cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
+        # MODIFIED: Column setup to make person buttons smaller and add an Edit column
+        # [Item, Price, Person1, Person2..., All, Edit]
+        col_widths = [3.5, 1] + [0.5] * len(PEOPLE) + [0.6, 0.6]
+
+        cols = st.columns(col_widths)
         cols[0].markdown("**Item**")
         cols[1].markdown("**Price**")
         st.divider()
 
         for i, item in enumerate(items):
-            cols = st.columns([3, 1] + [1] * len(PEOPLE) + [1])
+            cols = st.columns(col_widths)
             cols[0].write(item["Item"])
             cols[1].write(f"{item['Price']:.2f} €")
 
             selected_persons = []
+
+            # Check if this item has a custom split active
+            custom_split_key = f"custom_split_{i}"
+            has_custom_split = custom_split_key in st.session_state
 
             for j, person in enumerate(PEOPLE):
                 state_key = f"btn_state_{i}_{person}"
@@ -65,43 +122,55 @@ if uploaded_file is not None:
                 if state_key not in st.session_state:
                     st.session_state[state_key] = "PFAND" in item["Item"]
 
-                btn_type = "primary" if st.session_state[state_key] else "secondary"
+                # If custom split is active, we turn the button green ONLY if they have a share > 0
+                if has_custom_split:
+                    btn_type = "primary" if st.session_state[custom_split_key].get(person, 0) > 0 else "secondary"
+                else:
+                    btn_type = "primary" if st.session_state[state_key] else "secondary"
 
+                # Standard Person Toggle Button
                 cols[j + 2].button(
-                    person,
+                    person[0],  # Just the first letter to save space
                     key=f"btn_ui_{i}_{person}",
                     on_click=toggle_button,
                     args=(state_key,),
                     type=btn_type,
-                    use_container_width=True
+                    use_container_width=True,
+                    disabled=has_custom_split  # Lock the toggle if a manual override is active
                 )
 
-                if st.session_state[state_key]:
+                if st.session_state[state_key] and not has_custom_split:
                     selected_persons.append(person)
 
-            cols[-1].button(
+            # 'Select All' Button
+            cols[-2].button(
                 "All",
                 key=f"btn_all_{i}",
                 on_click=toggle_all,
                 args=(i, PEOPLE),
                 type="secondary",
-                use_container_width=True
+                use_container_width=True,
+                disabled=has_custom_split
             )
 
+            # --- NEW: 'Edit' Button ---
+            if cols[-1].button("✏️", key=f"btn_edit_{i}", use_container_width=True):
+                edit_item_split_dialog(i, item["Item"], item["Price"], PEOPLE)
+
+            # Build the assignment dictionary
             assignments.append({
                 "Item": item["Item"],
                 "Price": item["Price"],
-                "Selected": selected_persons
+                "Selected": selected_persons,
+                "Custom_Split": st.session_state.get(custom_split_key)  # Pass the custom dict to the math engine
             })
 
         st.divider()
 
-        # --- 3. BUSINESS LOGIC (Calculations & Preview) ---
-        # First Button: Only calculates and shows the preview
+        # --- BUSINESS LOGIC (Calculations & Preview) ---
         if st.button("🔍 Preview Split", use_container_width=True):
             st.session_state.preview_ready = True
 
-        # If preview is active, show the summary and the final save button
         if st.session_state.preview_ready:
             st.subheader("📊 Summary Preview")
             st.info("Please review the split below. If everything is correct, confirm to save it to the balance sheet.")
@@ -115,8 +184,6 @@ if uploaded_file is not None:
             if unassigned:
                 st.warning(f"⚠️ Warning: {len(unassigned)} items were not assigned to anyone!")
 
-            # --- 4. DATA SAVING ---
-            # Second Button: Actually saves the data
             if st.button("💾 Confirm & Save to Balance Sheet", type="primary", use_container_width=True):
                 save_split_results(totals, assignments, payer)
                 st.success(f"✅ Success! {payer} was credited for this receipt. Balances updated!")
