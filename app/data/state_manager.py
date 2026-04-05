@@ -145,4 +145,19 @@ def save_manual_entry(payer: str, amount: float, consumers: list, transaction_na
     if not consumers or amount <= 0:
         return False
     tx_id = str(uuid.uuid4())
-    # ... (Rest of manual entry logic is the same, just add "Transaction_ID": tx_id to your appends)
+    return None
+
+
+def hide_sidebar_page(page_name: str):
+    """Injects CSS to hide a specific page from the Streamlit sidebar."""
+    st.markdown(
+        f"""
+        <style>
+            /* Targets the specific link in the sidebar and hides it */
+            [data-testid="stSidebarNavItems"] a[href*="{page_name}" i] {{
+                display: none !important;
+            }}
+        </style>
+        """,
+        unsafe_allow_html=True
+    )

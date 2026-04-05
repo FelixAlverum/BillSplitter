@@ -6,8 +6,10 @@ import time
 from core.config import PEOPLE
 from core.splitting_math import calculate_split
 from data.state_manager import toggle_button, toggle_all, save_split_results, delete_transaction, DB_PATH
+from data.state_manager import hide_sidebar_page
 
 st.set_page_config(page_title="Edit Transaction", layout="wide")
+hide_sidebar_page("edit_transaction")
 
 # Check if we arrived here from the Edit button
 if "edit_tx_id" not in st.session_state:

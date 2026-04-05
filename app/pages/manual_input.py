@@ -2,8 +2,10 @@ import streamlit as st
 
 from core import config
 from data.state_manager import save_manual_entry
+from data.state_manager import hide_sidebar_page
 
 st.set_page_config(page_title="Manual Entry", page_icon="✍️", layout="centered")
+hide_sidebar_page("edit_transaction")
 st.title("✍️ Manual Entry")
 st.write("Did someone pay for exactly one other person? Enter it here.")
 

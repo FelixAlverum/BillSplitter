@@ -3,7 +3,10 @@ import pandas as pd
 import sqlite3
 import os
 
+from data.state_manager import hide_sidebar_page
+
 st.set_page_config(page_title="Balance Overview", page_icon="💸", layout="wide")
+hide_sidebar_page("edit_transaction")
 st.title("💸 Balance Overview")
 st.write("Track who owes money and who is owed money across all receipts.")
 
@@ -18,8 +21,6 @@ def format_balance(amount):
     else:
         return "⚪ 0.00 €"
 
-
-# ... (confirm_reset dialog remains the same) ...
 
 @st.dialog("🗑️ Delete Transaction")
 def confirm_delete_tx(tx_id, tx_name):
@@ -82,11 +83,12 @@ if os.path.exists(DB_PATH):
                 tx_name = tx_rows["Transaction_Name"].iloc[0]
                 ts = tx_rows["Date"].iloc[0]
 
-                col_info, col_view, col_edit, col_del = st.columns([3, 1.5, 1, 1])
+                col_info,col_date, col_view, col_edit, col_del = st.columns([2,1.5, 1, 1, 1])
 
                 with col_info:
                     st.markdown(f"**{tx_name}**")
-                    st.caption(f"📅 {ts}")
+                with col_date:
+                    st.markdown(f":gray[📅 {ts}]")
 
                 with col_view:
                     if st.button("🔍 View", key=f"view_{tx}", use_container_width=True):
@@ -103,5 +105,3 @@ if os.path.exists(DB_PATH):
                         confirm_delete_tx(tx, tx_name)
 
                 st.divider()
-
-        # ... (Reset button remains the same)
