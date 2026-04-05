@@ -75,33 +75,33 @@ if os.path.exists(DB_PATH):
         st.subheader("📊 Current Balances")
         st.dataframe(display_balances[["Person", "Net Balance"]], use_container_width=True, hide_index=True)
 
-        with st.expander("📜 Show Ledger (Transaction History)"):
-            unique_txs = df["Transaction_ID"].unique()
+        st.subheader("📜 Show Ledger (Transaction History)")
+        unique_txs = df["Transaction_ID"].unique()
 
-            for tx in unique_txs:
-                tx_rows = df[df["Transaction_ID"] == tx]
-                tx_name = tx_rows["Transaction_Name"].iloc[0]
-                ts = tx_rows["Date"].iloc[0]
+        for tx in unique_txs:
+            tx_rows = df[df["Transaction_ID"] == tx]
+            tx_name = tx_rows["Transaction_Name"].iloc[0]
+            ts = tx_rows["Date"].iloc[0]
 
-                col_info,col_date, col_view, col_edit, col_del = st.columns([2,1.5, 1, 1, 1])
+            col_info,col_date, col_view, col_edit, col_del = st.columns([2,1.5, 1, 1, 1])
 
-                with col_info:
-                    st.markdown(f"**{tx_name}**")
-                with col_date:
-                    st.markdown(f":gray[📅 {ts}]")
+            with col_info:
+                st.markdown(f"**{tx_name}**")
+            with col_date:
+                st.markdown(f":gray[📅 {ts}]")
 
-                with col_view:
-                    if st.button("🔍 View", key=f"view_{tx}", use_container_width=True):
-                        load_receipt_dialog(tx, tx_name)
+            with col_view:
+                if st.button("🔍 View", key=f"view_{tx}", use_container_width=True):
+                    load_receipt_dialog(tx, tx_name)
 
-                with col_edit:
-                    if st.button("✏️ Edit", key=f"edit_{tx}", use_container_width=True):
-                        # Save the ID to session state and navigate to the new page
-                        st.session_state.edit_tx_id = tx
-                        st.switch_page("pages/edit_transaction.py")
+            with col_edit:
+                if st.button("✏️ Edit", key=f"edit_{tx}", use_container_width=True):
+                    # Save the ID to session state and navigate to the new page
+                    st.session_state.edit_tx_id = tx
+                    st.switch_page("pages/edit_transaction.py")
 
-                with col_del:
-                    if st.button("🗑️", key=f"del_{tx}", type="secondary", use_container_width=True):
-                        confirm_delete_tx(tx, tx_name)
+            with col_del:
+                if st.button("🗑️", key=f"del_{tx}", type="secondary", use_container_width=True):
+                    confirm_delete_tx(tx, tx_name)
 
-                st.divider()
+            st.divider()
