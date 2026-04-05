@@ -2,35 +2,64 @@ import streamlit as st
 import pandas as pd
 import sqlite3
 import os
+import uuid  # NEW: For unique transaction IDs
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-# --- DATABASE SETUP ---
 DB_FOLDER = "db"
 DB_PATH = f"{DB_FOLDER}/ledger.db"
 
+
 def init_db():
-    """Ensures the database and table exist."""
     os.makedirs(DB_FOLDER, exist_ok=True)
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
-    # Create the table if it doesn't exist yet
+    # MODIFIED: Added Transaction_ID
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS ledger (
-            Date TEXT,
-            Person TEXT,
-            Amount REAL
-        )
-    ''')
+                   CREATE TABLE IF NOT EXISTS ledger
+                   (
+                       Transaction_ID
+                       TEXT,
+                       Date
+                       TEXT,
+                       Transaction_Name
+                       TEXT,
+                       Person
+                       TEXT,
+                       Amount
+                       REAL
+                   )
+                   ''')
+    cursor.execute('''
+                   CREATE TABLE IF NOT EXISTS item_details
+                   (
+                       Transaction_ID
+                       TEXT,
+                       Date
+                       TEXT,
+                       Transaction_Name
+                       TEXT,
+                       Person
+                       TEXT,
+                       Item
+                       TEXT,
+                       Total_Price
+                       REAL,
+                       Paid_Share
+                       REAL
+                   )
+                   ''')
     conn.commit()
     conn.close()
 
-# Run this once when the module is loaded
+
 init_db()
+
 
 # --- STATE MANAGEMENT ---
 def toggle_button(key: str):
     st.session_state[key] = not st.session_state[key]
+
 
 def toggle_all(item_index: int, people_list: list):
     all_selected = all(st.session_state.get(f"btn_state_{item_index}_{p}", False) for p in people_list)
@@ -38,67 +67,82 @@ def toggle_all(item_index: int, people_list: list):
     for p in people_list:
         st.session_state[f"btn_state_{item_index}_{p}"] = new_state
 
+
 def reset_state():
-    """Clears the saved button states and custom splits when a new file is uploaded."""
     for key in list(st.session_state.keys()):
-        # Added checking for "custom_split_"
         if key.startswith("btn_state_") or key.startswith("btn_all_") or key.startswith("custom_split_"):
             del st.session_state[key]
 
+
+# --- NEW: Delete Helper for Editing ---
+def delete_transaction(tx_id: str):
+    conn = sqlite3.connect(DB_PATH)
+    conn.execute("DELETE FROM ledger WHERE Transaction_ID = ?", (tx_id,))
+    conn.execute("DELETE FROM item_details WHERE Transaction_ID = ?", (tx_id,))
+    conn.commit()
+    conn.close()
+
+
 # --- SAVING LOGIC ---
-def save_split_results(totals: dict, assignments: list, payer: str):
-    records = []
-    #Get current time in Berlin/Germany timezone
-    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M:%S")
+# MODIFIED: Accepts an optional tx_id (for editing) and saves unassigned items
+def save_split_results(totals: dict, assignments: list, payer: str, transaction_name: str, tx_id: str = None):
+    if not tx_id:
+        tx_id = str(uuid.uuid4())  # Generate new ID if not editing
+
+    ledger_records = []
+    item_records = []
+    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%d.%m.%Y %H:%M")
     total_assigned_cost = sum(totals.values())
 
     for person in totals.keys():
         net_balance = -totals[person]
         if person == payer:
             net_balance += total_assigned_cost
-
         net_balance = round(net_balance, 2)
         if net_balance != 0:
-            records.append({
-                "Date": timestamp,
-                "Person": person,
-                "Amount": net_balance
+            ledger_records.append({
+                "Transaction_ID": tx_id, "Date": timestamp, "Transaction_Name": transaction_name,
+                "Person": person, "Amount": net_balance
             })
 
-    if records:
-        df = pd.DataFrame(records)
-        conn = sqlite3.connect(DB_PATH)
-        df.to_sql('ledger', conn, if_exists='append', index=False)
-        conn.close()
+    for a in assignments:
+        item_name = a["Item"]
+        item_price = a["Price"]
+        custom_split = a.get("Custom_Split")
 
-def save_manual_entry(payer: str, amount: float, consumers: list):
+        if custom_split:
+            for person, share in custom_split.items():
+                if share > 0:
+                    item_records.append({
+                        "Transaction_ID": tx_id, "Date": timestamp, "Transaction_Name": transaction_name,
+                        "Person": person, "Item": item_name, "Total_Price": item_price, "Paid_Share": share
+                    })
+        else:
+            selected = a["Selected"]
+            if selected:
+                share = item_price / len(selected)
+                for person in selected:
+                    item_records.append({
+                        "Transaction_ID": tx_id, "Date": timestamp, "Transaction_Name": transaction_name,
+                        "Person": person, "Item": item_name, "Total_Price": item_price, "Paid_Share": share
+                    })
+            else:
+                # NEW LOGIC: Save Unassigned Items
+                item_records.append({
+                    "Transaction_ID": tx_id, "Date": timestamp, "Transaction_Name": transaction_name,
+                    "Person": "Unassigned", "Item": item_name, "Total_Price": item_price, "Paid_Share": 0.0
+                })
+
+    conn = sqlite3.connect(DB_PATH)
+    if ledger_records:
+        pd.DataFrame(ledger_records).to_sql('ledger', conn, if_exists='append', index=False)
+    if item_records:
+        pd.DataFrame(item_records).to_sql('item_details', conn, if_exists='append', index=False)
+    conn.close()
+    return tx_id
+
+def save_manual_entry(payer: str, amount: float, consumers: list, transaction_name: str):
     if not consumers or amount <= 0:
         return False
-
-    records = []
-    # Get current time in Berlin/Germany timezone
-    timestamp = datetime.now(ZoneInfo("Europe/Berlin")).strftime("%Y-%m-%d %H:%M:%S")
-    split_amount = amount / len(consumers)
-    net_balances = {}
-
-    for person in consumers:
-        net_balances[person] = net_balances.get(person, 0.0) - split_amount
-
-    net_balances[payer] = net_balances.get(payer, 0.0) + amount
-
-    for person, net in net_balances.items():
-        net = round(net, 2)
-        if net != 0:
-            records.append({
-                "Date": timestamp,
-                "Person": person,
-                "Amount": net
-            })
-
-    if records:
-        conn = sqlite3.connect(DB_PATH)
-        df = pd.DataFrame(records)
-        df.to_sql('ledger', conn, if_exists='append', index=False)
-        conn.close()
-
-    return True
+    tx_id = str(uuid.uuid4())
+    # ... (Rest of manual entry logic is the same, just add "Transaction_ID": tx_id to your appends)

@@ -9,6 +9,7 @@ st.write("Did someone pay for exactly one other person? Enter it here.")
 
 # --- UI Formular ---
 with st.container(border=True):
+    transaction_name = st.text_input("📝 Transaction Name", value="Manual Entry")
     amount = st.number_input("💰 Total Amount (€)", min_value=0.0, value=0.0, format="%.2f")
 
     payer = st.selectbox("💳 Who paid the bill?", options=config.PEOPLE)
@@ -31,7 +32,7 @@ if amount > 0:
         if st.button("💾 Save to Balance Sheet", type="primary", use_container_width=True):
             # IMPORTANT: We wrap the single 'consumer' in a list [consumer]
             # because our save logic expects a list of people who share the cost
-            success = save_manual_entry(payer, amount, [consumer])
+            success = save_manual_entry(payer, amount, [consumer], transaction_name)
 
             if success:
                 st.success(f"✅ Success! Recorded that {consumer} owes {amount:.2f} € to {payer}.")

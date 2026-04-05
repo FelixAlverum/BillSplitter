@@ -90,14 +90,16 @@ if uploaded_file is not None:
     items = parse_receipt(raw_text)
 
     if items:
-        st.subheader("💳 Who paid the bill?")
-        payer = st.selectbox("", options=PEOPLE)
+        # --- NEW: Name and Payer side by side ---
+        col_name, col_payer = st.columns(2)
+        transaction_name = col_name.text_input("📝 Transaction Name", value="Groceries")
+        payer = col_payer.selectbox("💳 Who paid the bill?", options=PEOPLE)
+
         st.divider()
         st.subheader("📝 Split Found Items")
         assignments = []
 
         # MODIFIED: Column setup to make person buttons smaller and add an Edit column
-        # [Item, Price, Person1, Person2..., All, Edit]
         col_widths = [3.5, 1] + [0.5] * len(PEOPLE) + [0.6, 0.6]
 
         cols = st.columns(col_widths)
@@ -185,8 +187,10 @@ if uploaded_file is not None:
                 st.warning(f"⚠️ Warning: {len(unassigned)} items were not assigned to anyone!")
 
             if st.button("💾 Confirm & Save to Balance Sheet", type="primary", use_container_width=True):
-                save_split_results(totals, assignments, payer)
-                st.success(f"✅ Success! {payer} was credited for this receipt. Balances updated!")
+                # MODIFIED: Pass transaction_name to the save function
+                save_split_results(totals, assignments, payer, transaction_name)
+
+                st.success(f"✅ Success! {payer} was credited for '{transaction_name}'. Balances updated!")
                 st.balloons()
                 time.sleep(1.4)
                 reset_state()
