@@ -1,27 +1,29 @@
-def calculate_split(assignments: list, people: list) -> tuple:
+from typing import List, Tuple, Dict
+from core.models import ReceiptItem
+
+
+# MODIFIED: Expects a list of ReceiptItem objects
+def calculate_split(assignments: List[ReceiptItem], people: List[str]) -> Tuple[Dict[str, float], List[ReceiptItem]]:
     totals = {p: 0.0 for p in people}
     unassigned = []
 
-    for a in assignments:
-        custom_split = a.get("Custom_Split")
-
-        # If the user entered custom amounts via the Edit button
-        if custom_split:
-            for p, amount in custom_split.items():
+    for item in assignments:
+        # Check if the custom_split dictionary is not empty
+        if item.custom_split:
+            for p, amount in item.custom_split.items():
                 totals[p] += amount
 
-            # If the custom amounts equal exactly 0 in total, it counts as unassigned
-            if sum(custom_split.values()) == 0:
-                unassigned.append(a)
+            if sum(item.custom_split.values()) == 0:
+                unassigned.append(item)
 
-        # Normal behavior: divide price by number of selected people
+        # Normal behavior
         else:
-            person_count = len(a["Selected"])
+            person_count = len(item.selected_people)
             if person_count > 0:
-                share = a["Price"] / person_count
-                for p in a["Selected"]:
+                share = item.price / person_count
+                for p in item.selected_people:
                     totals[p] += share
             else:
-                unassigned.append(a)
+                unassigned.append(item)
 
     return totals, unassigned

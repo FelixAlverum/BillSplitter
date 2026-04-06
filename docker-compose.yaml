@@ -1,11 +1,11 @@
 services:
   billsplitter:
+    environment:
+      - PEOPLE=Felix,Nico,Sven,Markus
     build: .
     container_name: billsplitter_app
     ports:
       - "8501:8501"
     volumes:
-      # This maps a local "db" folder to the "/app/db" folder inside the container.
-      # This ensures your ledger.db survives even if the container is destroyed!
       - ./db:/app/db
     restart: unless-stopped

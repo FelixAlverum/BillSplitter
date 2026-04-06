@@ -1,6 +1,8 @@
 import pdfplumber
 import re
 
+from core.models import ReceiptItem
+
 # Constants
 from core.config import START_KEYWORD, STOP_KEYWORDS
 ITEM_REGEX = re.compile(r'(.+?)\s+(-?\d+[,.]\d{2})[\sAB*]*$')
@@ -40,5 +42,5 @@ def parse_receipt(text: str) -> list:
                     continue
 
                 if item_name:
-                    items.append({"Item": item_name, "Price": float(price_str)})
+                    items.append(ReceiptItem(name=item_name, price=float(price_str)))
     return items
