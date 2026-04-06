@@ -15,7 +15,7 @@ pg = st.navigation(
 )
 
 # 3. Draw our own Custom Sidebar Menu
-st.sidebar.markdown("### ⚔️ Shared Flat Ledger")
+st.sidebar.markdown("### Kurt Körber Gang 🎅")
 st.sidebar.page_link(splitter_page)
 st.sidebar.page_link(balances_page)
 st.sidebar.page_link(manual_page)
