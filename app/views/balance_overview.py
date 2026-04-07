@@ -98,10 +98,10 @@ if not df_ledger.empty:
         col_info, col_view, col_edit, col_del = st.columns([5, 1, 1, 1], vertical_alignment="center")
 
         with col_info:
-            # Line 1: Name + spacing + Date
-            st.markdown(f"**{tx_name}** &nbsp;&nbsp;&nbsp;&nbsp; {formatted_date}")
-            # Line 2: Payer + Amount in gray
-            st.markdown(f":gray[{payer} paid {amount_paid:.2f} €]")
+            # Line 1: Name + spacing
+            st.markdown(f"**{tx_name}**")
+            # Line 2: Payer + Amount + Date in gray
+            st.markdown(f":gray[{payer} paid {amount_paid:.2f} € on the {formatted_date}]")
 
         with col_view:
             if st.button("🔍 View", key=f"view_{tx}", use_container_width=True):
