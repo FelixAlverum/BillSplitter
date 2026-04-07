@@ -1,4 +1,5 @@
 import pandas as pd
+import os
 import sqlite3
 import uuid
 from datetime import datetime
@@ -8,8 +9,21 @@ from typing import List, Dict, Optional
 
 from core.models import ReceiptItem
 
-ROOT_DIR = Path(__file__).parent.parent
-DB_PATH = ROOT_DIR / "db" / "ledger.db"
+# Look for the environment variable. If not found (e.g., running locally without Docker),
+# fallback to creating a 'db' folder inside the project root.
+db_dir_env = os.getenv("DB_DIR")
+
+if db_dir_env:
+    # Docker mode: Uses the /data path we defined in docker-compose
+    DB_PATH = Path(db_dir_env) / "ledger.db"
+else:
+    # Local mode: Falls back to relative pathing
+    ROOT_DIR = Path(__file__).parent.parent
+    DB_PATH = ROOT_DIR / "db" / "ledger.db"
+
+# THE CRITICAL FIX:
+# This forces Python to create the folder (e.g., /data) if it doesn't exist yet!
+DB_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 
 def delete_transaction(tx_id: str):

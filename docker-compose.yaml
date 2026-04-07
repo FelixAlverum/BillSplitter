@@ -1,11 +1,12 @@
 services:
   billsplitter:
-    environment:
-      - PEOPLE=Felix,Nico,Sven,Markus
     build: .
     container_name: billsplitter_app
     ports:
       - "8501:8501"
+    environment:
+      - PEOPLE=Felix,Nico,Sven,Markus
+      - DB_DIR=/data
     volumes:
-      - ./db:/app/db
+      - ./db:/data
     restart: unless-stopped
