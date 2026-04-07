@@ -123,4 +123,9 @@ def render_items_table(items: List[ReceiptItem]) -> List[ReceiptItem]:
             custom_split=st.session_state.get(custom_split_key, {})
         ))
 
+        st.markdown(
+            "<hr style='width: 100%; margin: 0.5em auto; border: none; border-top: 1px solid rgba(128, 128, 128, 0.2);' />",
+            unsafe_allow_html=True
+        )
+
     return assignments
