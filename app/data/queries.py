@@ -129,3 +129,17 @@ def get_top_exclusive_items_for_person(df_personal: pd.DataFrame, person: str, t
 
     # Sort by times bought, then by total spent
     return top_items.sort_values(by=["Times_Bought", "Total_Spent"], ascending=[False, False])
+
+def get_transaction_totals() -> dict:
+    """Holt die tatsächlichen Kassenbon-Gesamtbeträge für alle Transaktionen auf einmal."""
+    if not DB_PATH.exists():
+        return {}
+
+    with sqlite3.connect(DB_PATH) as conn:
+        try:
+            # Summiert die Anteile, um den exakten Gesamtpreis pro Bon zu ermitteln
+            df = pd.read_sql_query("SELECT Transaction_ID, SUM(Paid_Share) as Total FROM item_details GROUP BY Transaction_ID", conn)
+            # Gibt ein Dictionary zurück: {"tx_id_123": 45.50, ...}
+            return df.set_index("Transaction_ID")["Total"].to_dict()
+        except sqlite3.OperationalError:
+            return {}

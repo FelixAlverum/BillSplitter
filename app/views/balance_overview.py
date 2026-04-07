@@ -1,8 +1,16 @@
 import streamlit as st
+import pandas as pd
+
 from data.mutations import delete_transaction, reset_ledger
-from data.queries import get_ledger_history, get_current_balances, get_transaction_details
+from data.queries import (
+    get_ledger_history,
+    get_current_balances,
+    get_transaction_details,
+    get_transaction_totals
+)
 
 st.set_page_config(page_title="Balance Overview", page_icon="💸", layout="wide")
+
 
 # --- UI FORMATTING ---
 def format_balance(amount: float) -> str:
@@ -15,7 +23,6 @@ def format_balance(amount: float) -> str:
 
 
 # --- DIALOGS ---
-# 2. Added the confirmation dialog for the global reset
 @st.dialog("⚠️ Confirm Global Reset")
 def confirm_reset():
     st.write("Are you absolutely sure? This will delete **EVERYTHING**.")
@@ -40,25 +47,12 @@ def confirm_delete_tx(tx_id: str, tx_name: str):
 
 @st.dialog("🧾 Receipt Details", width="large")
 def load_receipt_dialog(tx_id: str, tx_name: str):
-    st.subheader(f"🛒 {tx_name}")
-
-    # Fetch data cleanly from our queries layer
     df_items, df_ledger = get_transaction_details(tx_id)
-
     st.write("### 💰 Transaction Balances")
     if not df_ledger.empty:
         display_ledger = df_ledger[["Person", "Amount"]].copy()
         display_ledger["Amount"] = display_ledger["Amount"].apply(format_balance)
         st.dataframe(display_ledger, use_container_width=True, hide_index=True)
-
-    st.write("### 🛍️ Items Bought")
-    if not df_items.empty:
-        display_items = df_items[["Person", "Item", "Total_Price", "Paid_Share"]].copy()
-        display_items["Paid_Share"] = display_items["Paid_Share"].apply(
-            lambda x: f"{x:.2f} €" if x > 0 else "⚪ Unassigned"
-        )
-        display_items["Total_Price"] = display_items["Total_Price"].apply(lambda x: f"{x:.2f} €")
-        st.dataframe(display_items, use_container_width=True, hide_index=True)
 
 
 # --- MAIN UI LOGIC ---
@@ -71,6 +65,7 @@ if not df_ledger.empty:
     if st.button("🧨 Reset Entire Ledger"):
         confirm_reset()
     st.divider()
+
     # 1. Balances Section
     balances = get_current_balances(df_ledger)
     display_balances = balances.copy()
@@ -82,20 +77,31 @@ if not df_ledger.empty:
     # 2. Ledger History Section
     st.subheader("📜 Show Ledger (Transaction History)")
 
-    # Best Practice: Drop duplicates instead of looping & filtering to improve performance
     unique_txs = df_ledger.drop_duplicates(subset=["Transaction_ID"])[["Transaction_ID", "Transaction_Name", "Date"]]
+    tx_totals = get_transaction_totals()
 
     for _, row in unique_txs.iterrows():
         tx = row["Transaction_ID"]
         tx_name = row["Transaction_Name"]
         ts = row["Date"]
 
-        col_info, col_date, col_view, col_edit, col_del = st.columns([2, 1.5, 1, 1, 1])
+        # Drop the time (HH:MM) and keep only DD.MM.YYYY
+        formatted_date = str(ts).split(" ")[0]
+
+        tx_rows = df_ledger[df_ledger["Transaction_ID"] == tx]
+        payer_rows = tx_rows[tx_rows["Amount"] > 0]
+        payer = payer_rows["Person"].iloc[0] if not payer_rows.empty else "Unknown"
+        amount_paid = tx_totals.get(tx, 0.0)
+
+        # Updated Layout: 1 large info column, 3 equal-sized button columns
+        # vertical_alignment="center" ensures the buttons line up cleanly with the two lines of text!
+        col_info, col_view, col_edit, col_del = st.columns([5, 1, 1, 1], vertical_alignment="center")
 
         with col_info:
-            st.markdown(f"**{tx_name}**")
-        with col_date:
-            st.markdown(f":gray[📅 {ts}]")
+            # Line 1: Name + spacing + Date
+            st.markdown(f"**{tx_name}** &nbsp;&nbsp;&nbsp;&nbsp; {formatted_date}")
+            # Line 2: Payer + Amount in gray
+            st.markdown(f":gray[{payer} paid {amount_paid:.2f} €]")
 
         with col_view:
             if st.button("🔍 View", key=f"view_{tx}", use_container_width=True):
@@ -110,7 +116,10 @@ if not df_ledger.empty:
             if st.button("🗑️", key=f"del_{tx}", type="secondary", use_container_width=True):
                 confirm_delete_tx(tx, tx_name)
 
-        st.divider()
+        st.markdown(
+            "<hr style='width: 100%; margin: 0.5em auto; border: none; border-top: 1px solid rgba(128, 128, 128, 0.2);' />",
+            unsafe_allow_html=True
+        )
 
 else:
     st.info("The ledger is empty. Go split a receipt first!")
