@@ -5,4 +5,4 @@ PEOPLE = [p.strip() for p in people_env.split(",")]
 
 # --- Parser Configuration ---
 START_KEYWORD = "EUR"
-STOP_KEYWORDS = ["-------------------------------------", "SUMME"]
+STOP_KEYWORDS = ["-------------------------------------"]
